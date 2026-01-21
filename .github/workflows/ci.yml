@@ -25,16 +25,16 @@ jobs:
 
       - name: Run Linting (Check only)
         run: |
-          docker compose exec -T web poetry run black . --check
-          docker compose exec -T web poetry run isort . --check
-          docker compose exec -T web poetry run flake8 .
+          docker compose -f docker-compose.prod.yml exec -T web poetry run black . --check
+          docker compose -f docker-compose.prod.yml exec -T web poetry run isort . --check
+          docker compose -f docker-compose.prod.yml exec -T web poetry run flake8 .
 
       - name: Run Migrations
-        run: docker compose exec -T web python manage.py migrate
+        run: docker compose -f docker-compose.prod.yml exec -T web python manage.py migrate
 
       - name: Run Tests
-        run: docker compose exec -T web python manage.py test
+        run: docker compose -f docker-compose.prod.yml exec -T web python manage.py test
 
       - name: Cleanup
         if: always()
-        run: docker compose down
+        run: docker compose -f docker-compose.prod.yml down
