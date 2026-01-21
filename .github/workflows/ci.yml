@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        run: cp .env.example .env
+
+      - name: Build and start services
+        run: docker compose up -d --build
+
+      - name: Wait for database
+        run: |
+          docker compose exec -T web sh -c 'while ! nc -z db 5432; do sleep 1; done'
+
+      - name: Run Linting (Check only)
+        run: |
+          docker compose -f docker-compose.prod.yml exec -T web poetry run black . --check
+          docker compose -f docker-compose.prod.yml exec -T web poetry run isort . --check
+          docker compose -f docker-compose.prod.yml exec -T web poetry run flake8 .
+
+      - name: Run Migrations
+        run: docker compose -f docker-compose.prod.yml exec -T web python manage.py migrate
+
+      - name: Run Tests
+        run: docker compose -f docker-compose.prod.yml exec -T web python manage.py test
+
+      - name: Cleanup
+        if: always()
+        run: docker compose -f docker-compose.prod.yml down
